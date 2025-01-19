@@ -4,6 +4,7 @@ project(joltgrep VERSION 0.0.1 DESCRIPTION "grep C++ implementation")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 file(GLOB_RECURSE sources      src/*.cpp)
 
@@ -14,7 +15,6 @@ add_executable(joltgrep ${sources})
 
 target_compile_options(joltgrep PUBLIC -Wall)
 
-target_link_libraries(joltgrep absl::strings)
 target_link_libraries(joltgrep re2::re2)
 
 set_target_properties(joltgrep PROPERTIES RUNTIME_OUTPUT_DIRECTORY "bin")
