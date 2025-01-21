@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include "search.h"
+#include "tests.h"
 
 void printHelp(void)
 {
@@ -12,6 +13,11 @@ void printHelp(void)
 
 int main(int argc, char* argv[])
 {
+#ifdef TESTS_BUILD
+    tests::main();
+    return 0;
+#endif
+
     if (getopt(argc, argv, "hv") != -1) {
         printHelp();      
         return 0;
