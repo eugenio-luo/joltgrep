@@ -15,5 +15,6 @@ void end(const std::string_view output, int n);
 void check(bool condition, const std::string_view output);
 
 void main(void);
+void queue(void);
 
 } // namespace tests

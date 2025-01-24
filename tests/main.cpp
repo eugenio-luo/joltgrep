@@ -4,6 +4,7 @@
 
 void tests::main(void)
 {
+    tests::queue();   
 }
 
 static std::size_t numTests = 0; 
