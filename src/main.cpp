@@ -1,10 +1,14 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <filesystem>
 #include <unistd.h>
 
 #include "search.h"
+
+#ifdef TESTS_BUILD
 #include "tests.h"
+#endif
 
 void printHelp(void)
 {
@@ -30,8 +34,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::string pattern = argv[optind];
-    std::vector<std::string> paths(argv + optind + 1, argv + argc);
+    std::string pattern{argv[optind]};
+    std::vector<fs::path> paths(argv + optind + 1, argv + argc);
 
     joltgrep::search(paths, pattern);
 }
