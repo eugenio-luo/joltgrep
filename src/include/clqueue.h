@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <memory>
 #include <atomic>
 #include <cassert>
@@ -13,6 +15,8 @@
 / https://github.com/ConorWilliams/ConcurrentDeque/tree/main
 /
 */
+
+// TODO: Nasty bug with std::size_t underflow FIX IMMEDIATELY!
 
 namespace CL {
 
@@ -74,7 +78,7 @@ public:
     std::size_t capacity() const noexcept;
     bool empty() const noexcept;
 
-    void push(T object);
+    void push(T&& object);
     std::optional<T> pop(void) noexcept;
     std::optional<T> steal(void) noexcept;
 
@@ -120,7 +124,7 @@ bool Queue<T>::empty() const noexcept
 }
 
 template <typename T>
-void Queue<T>::push(T object) 
+void Queue<T>::push(T&& object) 
 {
     std::size_t b = m_bottom.load(relaxed);
     std::size_t t = m_top.load(relaxed);
@@ -147,7 +151,7 @@ std::optional<T> Queue<T>::pop(void) noexcept
     std::atomic_thread_fence(seq_cst);
     std::size_t t = m_top.load(relaxed);
 
-    if (t <= b) {
+    if (b != SIZE_MAX && t <= b) {
         if (t == b) {
             
             if (!m_top.compare_exchange_strong(t, t + 1, seq_cst, relaxed)) {
