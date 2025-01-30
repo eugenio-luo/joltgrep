@@ -16,5 +16,6 @@ void check(bool condition, const std::string_view output);
 
 void main(void);
 void queue(void);
+void boyerMoore(void);
 
 } // namespace tests
