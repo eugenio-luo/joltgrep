@@ -70,6 +70,8 @@ private:
 
     std::string           m_pattern;
 
+    // TODO: Remove file queue? It isn't that useful
+
     std::queue<Task>      m_fileQueue;
     std::mutex            m_fileLock;
     
