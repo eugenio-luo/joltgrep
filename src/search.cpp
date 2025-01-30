@@ -85,7 +85,6 @@ void joltgrep::search(std::vector<fs::path>& paths,
 {
     joltgrep::WorkSystem workSystem{std::move(pattern)};
     
-
     for (const auto& path : paths) {
         joltgrep::Task task{path};
         workSystem.writeDirQueue(std::move(task));

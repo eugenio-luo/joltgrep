@@ -28,7 +28,7 @@ void testSingleThread(void)
         } else {
         
             std::size_t prevSize = queue.size();
-            queue.push(i);
+            queue.push(std::move(i));
             tests::check(prevSize == queue.size() - 1, 
                     "queue does not have the correct size after push()");
             tests::check(queue.capacity() >= queue.size(), 
@@ -64,7 +64,7 @@ void testStealThread(std::vector<CL::Queue<int>>& queues, int id)
         }
 
         default:
-            queues[id].push(i);
+            queues[id].push(std::move(i));
             tests::check(queues[id].capacity() >= queues[id].size(), 
                     "queue does not have the correct capacity");
             break;
