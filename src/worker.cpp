@@ -20,6 +20,16 @@ std::vector<char>& joltgrep::Worker::getBuffer(void)
     return m_buffer;
 }
 
+void joltgrep::Worker::setSize(std::size_t size)
+{
+    m_bufferSize = size;
+}
+
+std::size_t joltgrep::Worker::getSize(void)
+{
+    return m_bufferSize;
+}
+
 void joltgrep::Worker::join(void)
 {
     if (m_thread.has_value()) {
@@ -44,7 +54,7 @@ std::optional<joltgrep::Task> joltgrep::Worker::pop(void)
 
 joltgrep::WorkSystem::WorkSystem(std::string&& pattern, 
         std::size_t numWorkers)
-    : m_workers(numWorkers), 
+    : m_workers(numWorkers), m_boyerMoore{},
     m_fileQueue{}, m_fileLock{}, m_dirQueue{}, m_dirLock()
 {
     m_pattern = std::move(pattern);
@@ -52,6 +62,9 @@ joltgrep::WorkSystem::WorkSystem(std::string&& pattern,
     for (int i = 0; i < numWorkers; ++i) {
         m_workers[i].setId(i);
     }
+
+    // TODO: Check if m_pattern is eligible for Boyer-Moore
+    m_boyerMoore = BoyerMoore(m_pattern); 
 }
 
 std::string_view joltgrep::WorkSystem::getPattern(void)
@@ -127,3 +140,7 @@ bool joltgrep::WorkSystem::writeDirQueue(joltgrep::Task&& task)
     return false;
 }
 
+std::optional<BoyerMoore>& joltgrep::WorkSystem::getBoyerMoore(void)
+{
+    return m_boyerMoore;
+}

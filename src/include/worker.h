@@ -9,6 +9,7 @@
 
 #include "clqueue.h"
 #include "task.h"
+#include "boyermoore.h"
 
 namespace joltgrep {
 
@@ -26,6 +27,8 @@ public:
     void setId(int id);
     int getId(void);
     std::vector<char>& getBuffer(void);
+    void setSize(std::size_t size);
+    std::size_t getSize(void);
 
     template <typename F, typename... Args>
     void run(F function, WorkSystem& workSystem, Args&&... args);
@@ -42,12 +45,13 @@ private:
     std::optional<std::thread> m_thread;
     int                        m_id;
     std::vector<char>          m_buffer;
+    std::size_t                m_bufferSize;
 };
 
 class WorkSystem {
 public:
     explicit WorkSystem(std::string&& pattern, 
-            std::size_t numWorkers = 4);
+            std::size_t numWorkers = 8);
 
     WorkSystem(const WorkSystem& other) = delete;
     WorkSystem& operator=(const WorkSystem& other) = delete;
@@ -65,10 +69,13 @@ public:
     std::optional<Task> readDirQueue(void);
     bool writeDirQueue(Task&& task);
 
+    std::optional<BoyerMoore>& getBoyerMoore(void);
+
 private:
     std::vector<Worker>   m_workers;
 
-    std::string           m_pattern;
+    std::string               m_pattern;
+    std::optional<BoyerMoore> m_boyerMoore;
 
     // TODO: Remove file queue? It isn't that useful
 
