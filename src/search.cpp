@@ -70,7 +70,7 @@ void searchThread(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker)
             break;
 
         case joltgrep::FileTask:
-            joltgrep::searchFile(worker, *task, re);
+            joltgrep::searchFile(workSystem, worker, *task, re);
             break;
         
         default:
