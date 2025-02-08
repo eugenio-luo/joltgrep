@@ -14,7 +14,7 @@ find_package(re2 REQUIRED)
 
 add_executable(joltgrep ${sources})
 
-target_compile_options(joltgrep PRIVATE -Wall)
+target_compile_options(joltgrep PRIVATE -Wall -O2)
 
 if (BUILD_TESTS)
     target_compile_definitions(joltgrep PRIVATE TESTS_BUILD)
