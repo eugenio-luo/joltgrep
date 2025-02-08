@@ -1,4 +1,6 @@
 #!/bin/bash
 
-cmake -S . -B ./build 
-cmake --build ./build
+rm -r build
+mkdir build && cd build
+cmake .. -DCMAKE_PREFIX_PATH=lib
+cmake --build .
