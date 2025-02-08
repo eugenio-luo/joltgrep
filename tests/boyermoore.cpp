@@ -88,10 +88,9 @@ void testSearch(int i)
 
     BoyerMoore boyerMoore(patterns[i]);
     
-    std::vector<char> buffer(strings[i].begin(), strings[i].end());
     std::size_t pos = boyerMoore.start();
     std::size_t shift;
-    while ((shift = boyerMoore.next(buffer, pos)) != 0) {
+    while ((shift = boyerMoore.next(strings[i], pos)) != 0) {
         pos += shift;
     }
 
@@ -109,10 +108,9 @@ void testFailedSearch(void)
     tests::start(testName);
 
     BoyerMoore boyerMoore(pattern);
-    std::vector<char> buffer(string.begin(), string.end());
     std::size_t pos = boyerMoore.start();
     std::size_t shift;
-    while ((shift = boyerMoore.next(buffer, pos)) != 0) {
+    while ((shift = boyerMoore.next(string, pos)) != 0) {
         pos += shift;
     }
 

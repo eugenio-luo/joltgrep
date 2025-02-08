@@ -18,7 +18,7 @@ public:
     std::string& getPattern(void);
 
     std::size_t start(void);
-    std::size_t next(const std::vector<char>& buffer, std::size_t pos);
+    int next(std::string_view buffer, std::size_t& pos);
 
 private:
     void preprocessBadCharTable(std::string_view pattern); 
