@@ -1,6 +1,6 @@
 build/*
 lib/*
-*.trace
+traces/*
 .vscode
 trace.sh
 
