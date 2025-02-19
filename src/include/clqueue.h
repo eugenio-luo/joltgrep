@@ -8,6 +8,8 @@
 #include <vector>
 #include <optional>
 
+#include "cache.h"
+
 /*
 / Chase-Lev work stealing queue
 / https://www.dre.vanderbilt.edu/~schmidt/PDF/work-stealing-dequeue.pdf
@@ -83,9 +85,9 @@ public:
     std::optional<T> steal(void) noexcept;
 
 private:
-    std::atomic<std::size_t> m_top;
-    std::atomic<std::size_t> m_bottom;
-    std::atomic<Buffer<T>*> m_buffer;
+    alignas(DESTRUCTIVE_INTER_SIZE) std::atomic<std::size_t> m_top;
+    alignas(DESTRUCTIVE_INTER_SIZE) std::atomic<std::size_t> m_bottom;
+    alignas(DESTRUCTIVE_INTER_SIZE) std::atomic<Buffer<T>*> m_buffer;
 
     std::vector<std::unique_ptr<Buffer<T>>> m_garbage;
 };
