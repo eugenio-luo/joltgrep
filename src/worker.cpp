@@ -1,8 +1,9 @@
 #include "worker.h"
 
 joltgrep::Worker::Worker(std::size_t queueCap)
-    : m_queue(queueCap), m_thread{}, m_id{}, m_buffer(workerBufferSize)
+    : m_queue(queueCap), m_thread{}, m_id{}, m_buffer{}
 {
+    m_buffer.reserve(WORKER_BUFFER_SIZE);
 }
 
 void joltgrep::Worker::setId(int id)
@@ -13,6 +14,26 @@ void joltgrep::Worker::setId(int id)
 int joltgrep::Worker::getId(void)
 {
     return m_id;
+}
+
+void joltgrep::Worker::increaseFileRead(void)
+{
+    ++m_fileRead;
+}
+
+void joltgrep::Worker::increaseMatchFound(void)
+{
+    ++m_matchFound;
+}
+
+std::size_t joltgrep::Worker::getFileRead(void)
+{
+    return m_fileRead;
+}
+
+std::size_t joltgrep::Worker::getMatchFound(void)
+{
+    return m_matchFound;
 }
 
 std::vector<char>& joltgrep::Worker::getBuffer(void)
@@ -54,22 +75,29 @@ std::optional<joltgrep::Task> joltgrep::Worker::pop(void)
 
 joltgrep::WorkSystem::WorkSystem(std::string&& pattern, 
         std::size_t numWorkers)
-    : m_workers(numWorkers), m_boyerMoore{},
+    : m_workers(numWorkers), m_pattern{pattern}, 
+    m_patternEngine{std::nullopt}, m_boyerMoore{},
     m_fileQueue{}, m_fileLock{}, m_dirQueue{}, m_dirLock()
 {
-    m_pattern = std::move(pattern);
-
     for (int i = 0; i < numWorkers; ++i) {
-        m_workers[i].setId(i);
+        m_workers[i].w.setId(i);
     }
 
+    // TODO: Check if m_pattern is complex enough
+    //       that we should create a pattern engine
+
     // TODO: Check if m_pattern is eligible for Boyer-Moore
-    m_boyerMoore = BoyerMoore(m_pattern); 
+    m_boyerMoore = BoyerMoore(std::move(pattern)); 
 }
 
-std::string_view joltgrep::WorkSystem::getPattern(void)
+std::string& joltgrep::WorkSystem::getPattern(void)
 {
     return m_pattern;
+}
+
+std::optional<re2::RE2>& joltgrep::WorkSystem::getPatternEngine(void)
+{
+    return m_patternEngine;
 }
 
 std::optional<joltgrep::Task> joltgrep::WorkSystem::steal(int id)
@@ -79,7 +107,7 @@ std::optional<joltgrep::Task> joltgrep::WorkSystem::steal(int id)
         randomQueue = rand() % m_workers.size(); 
     } while (randomQueue == id);
     
-    return m_workers[randomQueue].steal();
+    return m_workers[randomQueue].w.steal();
 }
 
 std::optional<joltgrep::Task> joltgrep::WorkSystem::readFileQueue(void)

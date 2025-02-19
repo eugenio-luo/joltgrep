@@ -14,6 +14,7 @@ namespace joltgrep {
 
 void search(std::vector<fs::path>& paths, std::string& pattern);
 void searchFile(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker, 
-    joltgrep::Task& task, const RE2& pattern);
+    //joltgrep::Task& task, const RE2& pattern);
+    joltgrep::Task& task);
 
 };

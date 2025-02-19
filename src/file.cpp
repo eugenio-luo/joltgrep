@@ -1,36 +1,22 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <filesystem>
+#include <filesystem> 
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "search.h"
 #include "task.h"
 #include "worker.h"
 #include "boyermoore.h"
 #include "print.h"
+#include "memchr.h"
+#include "print.h"
 
 #include "re2/re2.h"
 
-void readFile(joltgrep::Worker& worker, joltgrep::Task& task)
-{
-    std::ifstream fileHandler(task.getPath(), 
-        std::ios::in | std::ios::binary | std::ios::ate);
-    const std::size_t fileSize = fileHandler.tellg();
-    fileHandler.seekg(0, std::ios::beg);
-
-    // TODO: Handle case where file is bigger than buffer,
-    //       in that case, create another task 
-    if (fileSize > joltgrep::workerBufferSize) {
-        std::cout << "Error: file size too big!!!"; 
-        exit(1);
-    }
-
-    fileHandler.read(worker.getBuffer().data(), fileSize);
-    worker.setSize(fileSize);
-}
-
-/*
-std::optional<std::size_t> memchr(std::string_view buffer, std::size_t pos, char c)
+// TODO: write a better version of memchr
+inline std::size_t memchr(std::string_view buffer, std::size_t pos, char c)
 {
     std::size_t size = buffer.size();
 
@@ -40,49 +26,54 @@ std::optional<std::size_t> memchr(std::string_view buffer, std::size_t pos, char
         }
     }
 
-    return std::nullopt;
+    return SIZE_T_MAX;
 }
-*/
 
-void boyerMooreSearch(BoyerMoore& boyerMoore, const RE2& pattern,
+/*
+void boyerMooreSearch(BoyerMoore& boyerMoore, const std::string& pattern,
     std::string_view buffer, joltgrep::Task& task)
 {
     std::string_view string = boyerMoore.getPattern();
-    std::size_t pos = boyerMoore.start();
+    std::size_t pos = memchr(buffer, boyerMoore.start(), string.back());
     std::size_t size = buffer.size();
     
     while (pos < size) {
-        auto ptr = std::memchr(buffer.data() + pos, string.back(), size - pos);
-        if (ptr == nullptr) {
-            return;
-        }
-
-        pos = static_cast<const char*>(ptr) - buffer.data();
-        /*
-        auto opt = memchr(buffer, pos, string.back());
-        if (!opt.has_value()) {
-            return;
-        }
-
-        pos = *opt;
-        */
-
         int n = boyerMoore.next(buffer, pos);
-        
-        /*
+
         if (n == -1) {
             printLine(task, buffer, pos + 1);
             pos += string.size() + 1;
         } else {
             pos += n;
         }
-        */
-        if (n == -1 && RE2::PartialMatch(buffer.substr(pos + 1, string.size()), boyerMoore.getPattern())) {
-            printLine(task, buffer, pos + 1);
-            pos += string.size() + 1;
-        } else {
-            pos += n;
+        
+        pos = memchr(buffer, pos, string.back());
+    }
+}
+*/
+
+void boyerMooreSearch(std::vector<std::size_t>& charTable, std::vector<std::size_t>& suffixTable,
+        const std::string& pattern, std::string_view buffer, joltgrep::Task& task)
+{
+    std::size_t pos = memchr(buffer, pattern.size() - 1, pattern.back());
+    std::size_t size = buffer.size();
+    std::size_t patternSize = pattern.size();
+    
+    while (pos < size) {
+        int j = patternSize - 1;
+        while (j >= 0 && buffer[pos] == pattern[j]) {
+            --pos;
+            --j;
         }
+
+        if (j == -1) {
+            printLine(task, buffer, pos + 1);
+            pos += patternSize + 1;
+        } else {
+            pos += std::max(charTable[buffer[pos]], suffixTable[j]);
+        }
+        
+        pos = memchr(buffer, pos, pattern.back());
     }
 }
 
@@ -107,16 +98,40 @@ void defaultSearch(std::string_view buffer, const RE2& pattern,
 }
 
 void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
-    joltgrep::Worker& worker, joltgrep::Task& task, const RE2& pattern) 
+    joltgrep::Worker& worker, joltgrep::Task& task) 
 {
     std::vector<char>& buffer = worker.getBuffer();
 
-    readFile(worker, task);
-    std::optional<BoyerMoore>& boyerMoore = workSystem.getBoyerMoore();
-    
-    if (!boyerMoore.has_value()) {
-        defaultSearch({buffer.data(), worker.getSize()}, pattern, task);
-    } else {
-        boyerMooreSearch(*boyerMoore, pattern, {buffer.data(), worker.getSize()}, task);
+    int fd = open(task.getPath().c_str(), O_RDONLY);
+    // TODO: Handle Error
+    if (fd == -1) {
+        std::stringstream ss;
+        ss << "ERROR: " << errno << " " << task.getId() << " " << task.getOwnerId() << "\n";
+        joltgrep::debugPrint(ss.str());
+        throw;
     }
+    worker.increaseFileRead();
+    
+    std::optional<BoyerMoore>& boyerMoore = workSystem.getBoyerMoore();
+    std::string& pattern = workSystem.getPattern();
+
+    if (!boyerMoore.has_value()) {
+        return;
+    }
+
+    auto& badTable = boyerMoore->getBadCharTable();
+    auto& suffixTable = boyerMoore->getSuffixTable();
+
+    std::size_t bytesRead;
+    do {
+        bytesRead = read(fd, buffer.data(), joltgrep::WORKER_BUFFER_SIZE - 1);
+        if (bytesRead == SIZE_T_MAX) {
+            close(fd);
+            return;
+        }
+        worker.setSize(bytesRead);
+        boyerMooreSearch(badTable, suffixTable, pattern, {buffer.data(), worker.getSize()}, task);
+    } while (bytesRead == joltgrep::WORKER_BUFFER_SIZE - 1);
+
+    close(fd);
 }
