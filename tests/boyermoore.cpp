@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "tests.h"
 #include "boyermoore.h"
 
