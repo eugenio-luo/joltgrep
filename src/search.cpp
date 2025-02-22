@@ -12,47 +12,39 @@
 std::optional<joltgrep::Task>
 getTask(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker)
 {
-    std::optional<joltgrep::Task> task;
-
-    task = worker.pop();
+    std::optional<joltgrep::Task> task = worker.pop();
     if (task.has_value()) {
-        std::stringstream ss;
-        ss << "thread # " << worker.getId() << " pop " << task->getPath() << " " << task->getId() << " " << task->getOwnerId() << "\n";
-        // joltgrep::debugPrint(ss.str());
-
-        return task;
+        joltgrep::debugPrintf("thread %d pop %s %d %d\n", worker.getId(), task->getPath(),
+                task->getId(), task->getOwnerId());
+        return task;   
     }
 
-    int i = 0;
-    do {
+    for (int i = 0; i < 3; ++i) {
         task = workSystem.steal(worker.getId());
         if (task.has_value()) {
-            std::stringstream ss;
-            ss << "thread # " << worker.getId() << " steal " << task->getPath() << " " << task->getId() << " " << task->getOwnerId() << "\n";
-            // joltgrep::debugPrint(ss.str());
+            joltgrep::debugPrintf("thread %d steal %s %d %d\n", 
+                    worker.getId(), task->getPath(), task->getId(), task->getOwnerId());
             return task;
         }
 
         task = workSystem.readDirQueue();
         if (task.has_value()) {
-            std::stringstream ss;
-            ss << "thread # " << worker.getId() << " readDir " << task->getPath() << " " << task->getId() << " " << task->getOwnerId() << "\n";
-            // joltgrep::debugPrint(ss.str());
+            joltgrep::debugPrintf("thread %d read dir queue %s %d %d\n", 
+                    worker.getId(), task->getPath(), task->getId(), task->getOwnerId());
             return task;
         }
 
-        if (!task.has_value()) {
-            task = workSystem.readFileQueue();
+        task = workSystem.readFileQueue();
+        if (task.has_value()) {
+            joltgrep::debugPrintf("thread %d read file queue %s %d %d\n", 
+                    worker.getId(), task->getPath(), task->getId(), task->getOwnerId());
+            return task;
         }
-        if (!task.has_value()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        } else {
-            break;
-        }
-        ++i;
-    } while (i <= 2);
 
-    return task;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    return std::nullopt;
 }
 
 void searchDirectory(joltgrep::WorkSystem& workSystem, 
@@ -61,24 +53,23 @@ void searchDirectory(joltgrep::WorkSystem& workSystem,
     static thread_local int id = 0;
 
     for (const auto& dirEntry : fs::directory_iterator{task.getPath()}) {
-        joltgrep::Task entryTask{dirEntry.path().string(), 
-            ++id, worker.getId()};
+        
+        joltgrep::Task entryTask{dirEntry.path().string(), ++id, worker.getId()};
     
-        std::stringstream ss;
-        ss << "thread # " << worker.getId() << " pushed " << entryTask.getPath() << " " << id << " " << worker.getId() << "\n";
-        // joltgrep::debugPrint(ss.str());
+        joltgrep::debugPrintf("thread %d pushed %s %d %d\n", 
+            worker.getId(), entryTask.getPath(), id, worker.getId());
 
         switch (entryTask.getType()) {
-        case joltgrep::DirectoryTask:
+        case joltgrep::DIRECTORY_TASK:
             while (!workSystem.writeDirQueue(std::move(entryTask)));
             break;
 
-        case joltgrep::FileTask:
+        case joltgrep::FILE_TASK:
             worker.push(std::move(entryTask));
             break;
         
         default:
-            std::cout << "ERROR!!!\n";
+            std::cout << "searchDirectory: Unknown Task Type\n";
             exit(1);
         }
     }
@@ -87,28 +78,25 @@ void searchDirectory(joltgrep::WorkSystem& workSystem,
 void searchThread(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker)
 {
     std::optional<joltgrep::Task> task;
+    while ((task = getTask(workSystem, worker)).has_value()) {
 
-    while (true) {
-        task = getTask(workSystem, worker);
-        if (!task.has_value()) {
-            break;
-        }
-        
         switch (task->getType()) {
-        case joltgrep::DirectoryTask:
+        case joltgrep::DIRECTORY_TASK:
             searchDirectory(workSystem, worker, *task);
             break;
 
-        case joltgrep::FileTask:
+        case joltgrep::FILE_TASK:
             joltgrep::searchFile(workSystem, worker, *task);
             break;
         
         default:
-            std::cout << "ERROR!!!\n";
+            std::cout << "searchThread: Unknown Task Type\n";
             exit(1);
         }
     }
-
+    
+    joltgrep::debugPrintf("thread %d statistics: %d files\n", 
+            worker.getId(), worker.getFileRead());
 }
 
 void joltgrep::search(std::vector<fs::path>& paths, 
