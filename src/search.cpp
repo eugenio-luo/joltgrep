@@ -18,7 +18,7 @@ getTask(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker)
     if (task.has_value()) {
         std::stringstream ss;
         ss << "thread # " << worker.getId() << " pop " << task->getPath() << " " << task->getId() << " " << task->getOwnerId() << "\n";
-        //joltgrep::debugPrint(ss.str());
+        // joltgrep::debugPrint(ss.str());
 
         return task;
     }
@@ -29,7 +29,7 @@ getTask(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker)
         if (task.has_value()) {
             std::stringstream ss;
             ss << "thread # " << worker.getId() << " steal " << task->getPath() << " " << task->getId() << " " << task->getOwnerId() << "\n";
-            //joltgrep::debugPrint(ss.str());
+            // joltgrep::debugPrint(ss.str());
             return task;
         }
 
@@ -37,7 +37,7 @@ getTask(joltgrep::WorkSystem& workSystem, joltgrep::Worker& worker)
         if (task.has_value()) {
             std::stringstream ss;
             ss << "thread # " << worker.getId() << " readDir " << task->getPath() << " " << task->getId() << " " << task->getOwnerId() << "\n";
-            //joltgrep::debugPrint(ss.str());
+            // joltgrep::debugPrint(ss.str());
             return task;
         }
 
@@ -61,11 +61,12 @@ void searchDirectory(joltgrep::WorkSystem& workSystem,
     static thread_local int id = 0;
 
     for (const auto& dirEntry : fs::directory_iterator{task.getPath()}) {
-        joltgrep::Task entryTask{dirEntry.path(), ++id, worker.getId()};
+        joltgrep::Task entryTask{dirEntry.path().string(), 
+            ++id, worker.getId()};
     
         std::stringstream ss;
         ss << "thread # " << worker.getId() << " pushed " << entryTask.getPath() << " " << id << " " << worker.getId() << "\n";
-        //joltgrep::debugPrint(ss.str());
+        // joltgrep::debugPrint(ss.str());
 
         switch (entryTask.getType()) {
         case joltgrep::DirectoryTask:
@@ -117,7 +118,7 @@ void joltgrep::search(std::vector<fs::path>& paths,
     joltgrep::WorkSystem workSystem{std::move(pattern)};
     
     for (const auto& path : paths) {
-        joltgrep::Task task{path, ++id, -1};
+        joltgrep::Task task{path.string(), ++id, -1};
         workSystem.writeDirQueue(std::move(task));
     }
  

@@ -1,7 +1,7 @@
 #include "worker.h"
 
 joltgrep::Worker::Worker(std::size_t queueCap)
-    : m_queue(queueCap), m_thread{}, m_id{}, m_buffer{}
+    : m_queue{1024}, m_thread{}, m_id{}, m_buffer{}
 {
     m_buffer.reserve(WORKER_BUFFER_SIZE);
 }
