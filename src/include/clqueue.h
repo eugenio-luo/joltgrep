@@ -70,6 +70,8 @@ private:
 template <typename T>
 class Queue {
 public:
+    static_assert(std::is_trivially_destructible_v<T>);
+
     explicit Queue(std::size_t cap = 1024); 
     ~Queue() noexcept;
 
