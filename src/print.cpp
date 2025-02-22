@@ -15,8 +15,7 @@ void joltgrep::unlockCoutMutex(void)
     coutMutex.unlock();
 }
 
-void joltgrep::printLine(joltgrep::Task& task, 
-    std::string_view buffer, std::size_t pos)
+std::string_view joltgrep::getSubstrLine(std::string_view buffer, std::size_t pos)
 {
     std::size_t left = pos, right = pos;
 
@@ -39,10 +38,14 @@ void joltgrep::printLine(joltgrep::Task& task,
         --right;
     }
 
+    return buffer.substr(left, right - left + 1);
+}
+
+void joltgrep::printLine(joltgrep::Task& task, std::string_view buffer)
+{
     lockCoutMutex();
-    
-    std::cout << task.getPath() << ":" << 
-        buffer.substr(left, right - left + 1) << "\n"; 
+
+    std::cout << task.getPath() << ":" << buffer << "\n";
     
     unlockCoutMutex();
 }

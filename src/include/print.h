@@ -10,7 +10,8 @@ namespace joltgrep {
 void lockCoutMutex(void);
 void unlockCoutMutex(void);
 
-void printLine(joltgrep::Task& task, std::string_view buffer, std::size_t pos);
+std::string_view getSubstrLine(std::string_view buffer, std::size_t pos);
+void printLine(joltgrep::Task& task, std::string_view buffer);
 
 template <typename... Args>
 void debugPrintf(const char *fmt, Args&&... args);
