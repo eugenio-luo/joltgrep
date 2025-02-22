@@ -5,6 +5,7 @@
 joltgrep::Task::Task(std::string_view path, int id, int ownerId)
     : m_type{NULL_TASK}, m_id{id}, m_ownerId{ownerId}
 {
+    // TODO: fix this ugly hack
     std::copy(path.begin(), path.end(), m_path.data());
     m_path[path.size()] = '\0';
     
