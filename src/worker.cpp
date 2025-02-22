@@ -1,4 +1,5 @@
 #include "worker.h"
+#include "print.h"
 
 joltgrep::Worker::Worker(std::size_t queueCap)
     : m_queue{1024}, m_thread{}, m_id{}, m_buffer{}
@@ -73,21 +74,52 @@ std::optional<joltgrep::Task> joltgrep::Worker::pop(void)
     return m_queue.pop();
 }
 
+// TODO: improve this please
+joltgrep::SearchType decideSearchType(std::string_view pattern)
+{
+    // TODO: We are too strict
+    static constexpr std::string_view boyerMooreBanned = ".[]\\*+?^$()|";
+
+    for (char c : pattern) {
+        if (boyerMooreBanned.find(c) != std::string::npos) {
+            return joltgrep::DEFAULT_SEARCH;
+        }
+    }
+
+    return joltgrep::BOYER_MOORE_SEARCH;
+}
+
 joltgrep::WorkSystem::WorkSystem(std::string&& pattern, 
         std::size_t numWorkers)
-    : m_workers(numWorkers), m_pattern{pattern}, 
-    m_patternEngine{std::nullopt}, m_boyerMoore{},
+    : m_workers(numWorkers), m_recommended{joltgrep::DEFAULT_SEARCH},
+    // m_pattern{pattern}, m_patternEngine{std::nullopt}, m_boyerMoore{},
+    m_pattern{pattern}, m_patternEngine{pattern}, m_boyerMoore{},
     m_fileQueue{}, m_fileLock{}, m_dirQueue{}, m_dirLock()
 {
     for (int i = 0; i < numWorkers; ++i) {
         m_workers[i].w.setId(i);
     }
 
-    // TODO: Check if m_pattern is complex enough
-    //       that we should create a pattern engine
+    m_recommended = decideSearchType(m_pattern); 
 
-    // TODO: Check if m_pattern is eligible for Boyer-Moore
-    m_boyerMoore = BoyerMoore(std::move(pattern)); 
+    switch (m_recommended) {
+        case joltgrep::BOYER_MOORE_SEARCH:
+            m_boyerMoore = BoyerMoore(std::move(pattern));
+            break;
+
+        case joltgrep::DEFAULT_SEARCH:
+            // m_patternEngine{pattern};
+            break;
+
+        case joltgrep::AHO_CORASICK_SEARCH:
+            debugPrintf("Not implemented yet!");
+            break;
+    }
+}
+
+joltgrep::SearchType joltgrep::WorkSystem::getSearchType(void)
+{
+    return m_recommended;
 }
 
 std::string& joltgrep::WorkSystem::getPattern(void)
@@ -95,7 +127,7 @@ std::string& joltgrep::WorkSystem::getPattern(void)
     return m_pattern;
 }
 
-std::optional<re2::RE2>& joltgrep::WorkSystem::getPatternEngine(void)
+re2::RE2& joltgrep::WorkSystem::getPatternEngine(void)
 {
     return m_patternEngine;
 }

@@ -21,6 +21,12 @@ static constexpr std::size_t WORKER_BUFFER_SIZE = 2 << 16;
 
 class WorkSystem;
 
+enum SearchType {
+    DEFAULT_SEARCH,
+    BOYER_MOORE_SEARCH,
+    AHO_CORASICK_SEARCH,
+};
+
 class Worker {
 public:
     explicit Worker(std::size_t queueCap = 1024);
@@ -75,8 +81,9 @@ public:
     WorkSystem(const WorkSystem& other) = delete;
     WorkSystem& operator=(const WorkSystem& other) = delete;
 
+    SearchType getSearchType(void);
     std::string& getPattern(void);
-    std::optional<re2::RE2>& getPatternEngine(void);
+    re2::RE2& getPatternEngine(void);
 
     template <typename F, typename... Args>
     void runWorkers(F function, Args&&... args);
@@ -94,15 +101,16 @@ public:
 private:
     std::vector<alignWorker>  m_workers;
 
+    SearchType                m_recommended;
     std::string               m_pattern;
-    std::optional<re2::RE2>   m_patternEngine;
+    re2::RE2                  m_patternEngine;
     std::optional<BoyerMoore> m_boyerMoore;
 
     // TODO: Remove file queue? It isn't that useful
-
+    
     std::queue<Task>      m_fileQueue;
     std::mutex            m_fileLock;
-    
+
     std::queue<Task>      m_dirQueue;
     std::mutex            m_dirLock;
 };
