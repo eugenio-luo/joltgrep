@@ -4,14 +4,6 @@ Implementation of the grep command line tool in C++.
 
 Objective: Be faster than GNU grep.
 
-## Build
-
-1. install headers and libraries for `absl` and `re2` in `lib` 
-2. run
-```
-./build.sh
-```
-
 ## Preliminary Data
 
 The project is still a work in progress, there are still lot of cases to handle
@@ -27,3 +19,12 @@ was run on macOS Sequoia Apple M2 8GB RAM.
 | ripgrep | 0.541 ± 0.065 | 26 | 14.1 |
 | GNU grep | 1.332 ± 0.027 | 26 | 3.11 |
 | BSD grep | 10.400 ± 0.067 | 26 | 2.6 |
+
+## Build
+
+1. install headers and libraries for `absl` and `re2` in `lib` 
+2. run
+```
+./build.sh
+```
+

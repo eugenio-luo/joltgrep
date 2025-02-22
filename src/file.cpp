@@ -134,30 +134,4 @@ void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
     } while (bytesRead == joltgrep::WORKER_BUFFER_SIZE);
     
     close(fd);
-
-    /*
-    std::optional<BoyerMoore>& boyerMoore = workSystem.getBoyerMoore();
-    std::string& pattern = workSystem.getPattern();
-
-    if (!boyerMoore.has_value()) {
-        return;
-    }
-
-    auto& badTable = boyerMoore->getBadCharTable();
-    auto& suffixTable = boyerMoore->getSuffixTable();
-    std::vector<char>& buffer = worker.getBuffer();
-    
-    std::size_t bytesRead;
-    do {
-        bytesRead = read(fd, buffer.data(), joltgrep::WORKER_BUFFER_SIZE);
-        if (bytesRead == SIZE_T_MAX) {
-            close(fd);
-            return;
-        }
-        worker.setSize(bytesRead);
-        boyerMooreSearch(badTable, suffixTable, pattern, {buffer.data(), worker.getSize()}, task, worker.getId());
-    } while (bytesRead == joltgrep::WORKER_BUFFER_SIZE);
-
-    close(fd);
-    */
 }
