@@ -2,25 +2,18 @@
 
 #include <filesystem>
 
-joltgrep::Task::Task(TaskType type, std::string_view path)
-    : m_type{type}
-{
-    std::copy(path.begin(), path.end(), m_path.data());
-    m_path[path.size()] = '\0';
-}
-
 joltgrep::Task::Task(std::string_view path, int id, int ownerId)
-    : m_type{NullTask}, m_id{id}, m_ownerId{ownerId}
+    : m_type{NULL_TASK}, m_id{id}, m_ownerId{ownerId}
 {
     std::copy(path.begin(), path.end(), m_path.data());
     m_path[path.size()] = '\0';
     
     if (std::filesystem::is_directory(path)) {
-        m_type = DirectoryTask;
+        m_type = DIRECTORY_TASK;
     } else if (std::filesystem::is_regular_file(path)) {
-        m_type = FileTask;
+        m_type = FILE_TASK;
     } else {
-        m_type = NullTask;
+        m_type = NULL_TASK;
     }
 }
 
