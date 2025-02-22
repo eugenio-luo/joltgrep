@@ -6,14 +6,13 @@
 namespace joltgrep {
 
 enum TaskType {
-    NullTask,
-    FileTask,
-    DirectoryTask,
+    NULL_TASK,
+    FILE_TASK,
+    DIRECTORY_TASK,
 };
 
 class Task {
 public:
-    Task(TaskType type, std::string_view path);
     Task(std::string_view path, int id, int ownerId);
     Task() = default;
 
