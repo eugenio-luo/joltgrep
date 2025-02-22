@@ -1,16 +1,23 @@
 #include "task.h"
 
-joltgrep::Task::Task(TaskType type, const std::filesystem::path path)
-    : m_type{type}, m_path{path}
+#include <filesystem>
+
+joltgrep::Task::Task(TaskType type, std::string_view path)
+    : m_type{type}
 {
+    std::copy(path.begin(), path.end(), m_path.data());
+    m_path[path.size()] = '\0';
 }
 
-joltgrep::Task::Task(const std::filesystem::path path, int id, int ownerId)
-    : m_type{NullTask}, m_path{path}, m_id{id}, m_ownerId{ownerId}
+joltgrep::Task::Task(std::string_view path, int id, int ownerId)
+    : m_type{NullTask}, m_id{id}, m_ownerId{ownerId}
 {
-    if (std::filesystem::is_directory(m_path)) {
+    std::copy(path.begin(), path.end(), m_path.data());
+    m_path[path.size()] = '\0';
+    
+    if (std::filesystem::is_directory(path)) {
         m_type = DirectoryTask;
-    } else if (std::filesystem::is_regular_file(m_path)) {
+    } else if (std::filesystem::is_regular_file(path)) {
         m_type = FileTask;
     } else {
         m_type = NullTask;
@@ -22,9 +29,9 @@ joltgrep::TaskType joltgrep::Task::getType(void)
     return m_type;
 }
 
-std::filesystem::path& joltgrep::Task::getPath(void) 
+const char* joltgrep::Task::getPath(void) 
 {
-    return m_path;
+    return m_path.data();
 }
 
 int joltgrep::Task::getId(void)

@@ -1,6 +1,7 @@
 #pragma once
 
-#include <filesystem>
+#include <array>
+#include <string>
 
 namespace joltgrep {
 
@@ -12,12 +13,12 @@ enum TaskType {
 
 class Task {
 public:
-    Task(TaskType type, const std::filesystem::path path);
-    Task(const std::filesystem::path path, int id, int ownerId);
+    Task(TaskType type, std::string_view path);
+    Task(std::string_view path, int id, int ownerId);
     Task() = default;
 
     TaskType getType(void);
-    std::filesystem::path& getPath(void);
+    const char* getPath(void);
 
     // debug
     int getId(void);
@@ -25,8 +26,9 @@ public:
 
 private:
     TaskType m_type;
-    std::filesystem::path m_path{};
-    
+    //std::filesystem::path m_path{};
+    std::array<char, 1024> m_path;
+
     // debug
     int m_id = -1;
     int m_ownerId = -1;
