@@ -3,7 +3,17 @@
 
 #include "print.h"
 
-static std::mutex printLock{};
+static std::mutex coutMutex{};
+
+void joltgrep::lockCoutMutex(void)
+{
+    coutMutex.lock();
+}
+
+void joltgrep::unlockCoutMutex(void)
+{
+    coutMutex.unlock();
+}
 
 void joltgrep::printLine(joltgrep::Task& task, 
     std::string_view buffer, std::size_t pos)
@@ -29,15 +39,10 @@ void joltgrep::printLine(joltgrep::Task& task,
         --right;
     }
 
-    printLock.lock();
+    lockCoutMutex();
+    
     std::cout << task.getPath() << ":" << 
         buffer.substr(left, right - left + 1) << "\n"; 
-    printLock.unlock();
-}
-
-void joltgrep::debugPrint(std::string_view buffer)
-{
-    printLock.lock();
-    std::cout << buffer;
-    printLock.unlock();
+    
+    unlockCoutMutex();
 }
