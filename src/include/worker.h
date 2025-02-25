@@ -69,7 +69,7 @@ private:
     std::size_t                m_bufferSize;
 };
 
-struct alignWorker {
+struct AlignWorker {
     alignas(DESTRUCTIVE_INTER_SIZE) Worker w;
 };
 
@@ -99,7 +99,7 @@ public:
     std::optional<BoyerMoore>& getBoyerMoore(void);
 
 private:
-    std::vector<alignWorker>  m_workers;
+    std::vector<AlignWorker>  m_workers;
 
     SearchType                m_recommended;
     std::string               m_pattern;
