@@ -15,37 +15,37 @@ void joltgrep::unlockCoutMutex(void)
     coutMutex.unlock();
 }
 
-std::string_view joltgrep::getSubstrLine(std::string_view buffer, std::size_t pos)
+void joltgrep::printLine(joltgrep::Task& task, joltgrep::Worker& worker,
+        std::pair<size_t, size_t> pair)
 {
-    std::size_t left = pos, right = pos;
+    std::string_view primaryBuffer{worker.getBuffer().data(), worker.getSize()};
+    size_t left = pair.first, right = pair.second;
 
-    while ((left > 0 && buffer[left] != '\n') || 
-        (right < buffer.size() && buffer[right] != '\n')) {
-        
-        if (left > 0 && buffer[left] != '\n') {
-            --left;
-        }
-        if (right < buffer.size() && buffer[right] != '\n') {
-            ++right;
-        }
-    }
+    if (left >= joltgrep::WORKER_BUFFER_SIZE) {  
+ 
+        left -= WORKER_BUFFER_SIZE;
+        right -= WORKER_BUFFER_SIZE;
 
-    if (left != 0) {
-        ++left;
-    }
+        lockCoutMutex();
 
-    if (right != buffer.size()) {
-        --right;
-    }
-
-    return buffer.substr(left, right - left + 1);
-}
-
-void joltgrep::printLine(joltgrep::Task& task, std::string_view buffer)
-{
-    lockCoutMutex();
-
-    std::cout << task.getPath() << ":" << buffer << "\n";
+        std::cout << task.getPath() << ":" << 
+            primaryBuffer.substr(left, right - left + 1) << "\n";
     
-    unlockCoutMutex();
+        unlockCoutMutex();
+    } else {
+    
+        std::string_view secondaryBuffer{
+            worker.getSecondaryBuffer().data(), joltgrep::WORKER_BUFFER_SIZE};
+
+        std::string_view line1 = secondaryBuffer.substr(
+                left);
+        std::string_view line2 = primaryBuffer.substr(0, right - WORKER_BUFFER_SIZE);
+
+        lockCoutMutex();
+
+        std::cout << task.getPath() << ":" << 
+            line1 << line2 << "\n";
+    
+        unlockCoutMutex();
+    }
 }

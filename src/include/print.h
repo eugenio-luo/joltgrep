@@ -2,16 +2,18 @@
 
 #include <string>
 #include <cstdio>
+#include <utility>
 
 #include "task.h"
+#include "worker.h"
 
 namespace joltgrep {
 
 void lockCoutMutex(void);
 void unlockCoutMutex(void);
 
-std::string_view getSubstrLine(std::string_view buffer, std::size_t pos);
-void printLine(joltgrep::Task& task, std::string_view buffer);
+void printLine(joltgrep::Task& task, joltgrep::Worker& worker, 
+        std::pair<size_t, size_t> pair);
 
 template <typename... Args>
 void debugPrintf(const char *fmt, Args&&... args);
