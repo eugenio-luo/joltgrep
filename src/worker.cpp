@@ -2,9 +2,11 @@
 #include "print.h"
 
 joltgrep::Worker::Worker(std::size_t queueCap)
-    : m_queue{1024}, m_thread{}, m_id{}, m_buffer{}
+    : m_queue{1024}, m_thread{}, m_id{}, m_buffers{},
+    m_primary{0}, m_used{false}
 {
-    m_buffer.reserve(WORKER_BUFFER_SIZE);
+    m_buffers[0].reserve(WORKER_BUFFER_SIZE);
+    m_buffers[1].reserve(WORKER_BUFFER_SIZE);
 }
 
 void joltgrep::Worker::setId(int id)
@@ -37,10 +39,76 @@ std::size_t joltgrep::Worker::getMatchFound(void)
     return m_matchFound;
 }
 
-std::vector<char>& joltgrep::Worker::getBuffer(void)
+std::pair<size_t, size_t> joltgrep::Worker::getLine(size_t pos)
 {
-    return m_buffer;
+    size_t left = pos, right = pos;
+    size_t leftLimit = (m_used) ? 0 : WORKER_BUFFER_SIZE;
+    size_t rightLimit = getSize() + WORKER_BUFFER_SIZE;
+
+    while ((left > leftLimit && getChar(left) != '\n') || 
+        (right < rightLimit && getChar(right) != '\n')) {
+        
+        if (left > leftLimit && getChar(left) != '\n') {
+            --left;
+        }
+        if (right < rightLimit && getChar(right) != '\n') {
+            ++right;
+        }
+    }
+
+    if (left != leftLimit) {
+        ++left;
+    }
+
+    if (right != rightLimit) {
+        --right;
+    }
+
+    return {left, right};
 }
+
+joltgrep::buffer_t& joltgrep::Worker::getBuffer(void)
+{
+    return m_buffers[m_primary];
+}
+
+joltgrep::buffer_t& joltgrep::Worker::getSecondaryBuffer(void)
+{
+    return m_buffers[1 - m_primary];
+}
+
+void joltgrep::Worker::switchPrimary(void)
+{
+    m_primary = 1 - m_primary;
+    m_used = true;
+}
+
+void joltgrep::Worker::resetUsed(void)
+{
+    m_used = false;
+}
+
+bool joltgrep::Worker::getUsed(void)
+{
+    return m_used;
+}
+
+char joltgrep::Worker::getChar(size_t pos)
+{
+    if (pos < WORKER_BUFFER_SIZE) {
+        if (!m_used) {
+            // TODO: handle error
+            std::cout << pos << " " << WORKER_BUFFER_SIZE 
+                << " pos < WORKER_BUFFER_SIZE but !m_used\n";
+            throw;
+        }
+        return m_buffers[1 - m_primary][pos];
+    }
+
+    return m_buffers[m_primary][pos - WORKER_BUFFER_SIZE];
+}
+
+
 
 void joltgrep::Worker::setSize(std::size_t size)
 {

@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <vector>
 #include <fstream>
+#include <utility>
 
 #include "re2/re2.h"
 
@@ -18,6 +19,14 @@
 namespace joltgrep {
 
 static constexpr std::size_t WORKER_BUFFER_SIZE = 2 << 16;
+// TODO: Implement code for more buffers, but I feel like 2 buffers
+// should be fine forever
+static constexpr std::size_t BUFFERS_COUNT = 2;
+
+static_assert(BUFFERS_COUNT == 2);
+
+using buffer_t = std::vector<char>;
+using buffers_t = std::array<buffer_t, BUFFERS_COUNT>;
 
 class WorkSystem;
 
@@ -34,7 +43,13 @@ public:
     Worker(const Worker& other) = delete;
     Worker& operator=(const Worker& other) = delete;
 
-    std::vector<char>& getBuffer(void);
+    buffer_t& getBuffer(void);
+    buffer_t& getSecondaryBuffer(void);
+    void switchPrimary(void);
+    void resetUsed(void);
+    bool getUsed(void);
+    char getChar(size_t pos);
+    std::pair<size_t, size_t> getLine(size_t pos); 
 
     void setSize(std::size_t size);
     std::size_t getSize(void);
@@ -65,8 +80,12 @@ private:
     std::size_t                m_fileRead = 0;
     std::size_t                m_matchFound = 0;
 
-    std::vector<char>          m_buffer;
-    std::size_t                m_bufferSize;
+    buffers_t   m_buffers;
+    // the primary buffer index
+    int         m_primary;
+    // how many buffers are in use
+    bool        m_used;
+    std::size_t m_bufferSize;
 };
 
 struct AlignWorker {
