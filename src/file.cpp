@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <filesystem> 
+#include <limits>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -16,17 +17,17 @@
 #include "re2/re2.h"
 
 // TODO: write a better version of memchr
-inline std::size_t memchr(std::string_view buffer, std::size_t pos, char c)
+inline size_t memchr(joltgrep::Worker& worker, size_t pos, char c)
 {
-    std::size_t size = buffer.size();
+    std::size_t size = worker.getSize() + joltgrep::WORKER_BUFFER_SIZE;
 
-    for (std::size_t i = pos; i < size; ++i) {
-        if (buffer[i] == c) {
+    for (size_t i = pos; i < size; ++i) {
+        if (worker.getChar(i) == c) {
             return i;
         }
     }
 
-    return SIZE_T_MAX;
+    return SIZE_MAX;
 }
 
 void boyerMooreSearch(joltgrep::WorkSystem& workSystem,
@@ -41,39 +42,45 @@ void boyerMooreSearch(joltgrep::WorkSystem& workSystem,
 
     auto& charTable = boyerMoore->getBadCharTable();
     auto& suffixTable = boyerMoore->getSuffixTable();
-    
-    std::string_view buffer{worker.getBuffer().data(), worker.getSize()};
+
     std::string& pattern = workSystem.getPattern();
-    std::size_t pos = pattern.size() - 1;
-    
-    while ((pos = memchr(buffer, pos, pattern.back())) < buffer.size()) {
+    std::size_t bufferSize = worker.getSize() + joltgrep::WORKER_BUFFER_SIZE;
+    size_t pos = joltgrep::WORKER_BUFFER_SIZE;
+
+    while ((pos = memchr(worker, pos, pattern.back())) < bufferSize) {
         
+        if (pos <= joltgrep::WORKER_BUFFER_SIZE + pattern.size() - 1 && !worker.getUsed()) {
+            ++pos;
+            continue;
+        }
+
         int j = pattern.size() - 1;
-        while (j >= 0 && buffer[pos] == pattern[j]) {
+        while (j >= 0 && worker.getChar(pos) == pattern[j]) {
             --pos;
             --j;
         }
 
         if (j == -1) {
-            
             joltgrep::debugPrintf("thread %d found match in %s %d %d\n",
                 worker.getId(), task.getPath(), task.getId(), task.getOwnerId());
 
-            joltgrep::printLine(task, joltgrep::getSubstrLine(buffer, pos + 1));
+            joltgrep::printLine(task, worker, worker.getLine(pos + 1));
             pos += pattern.size() + 1;
-            pos = memchr(buffer, pos, '\n');
+            pos = memchr(worker, pos, '\n');
             
             // Reached end of file
-            if (pos >= buffer.size()) {
+            if (pos >= bufferSize) {
                 return;
             }
         } else {
-        
-            pos += std::max(charTable[buffer[pos]], suffixTable[j]);
+
+            pos += std::max(charTable[worker.getChar(pos)], suffixTable[j]);
         }
     }
-}
+}   
 
+// TODO: Fix 2 buffers!!!
+/*
 void defaultSearch(joltgrep::WorkSystem& workSystem, 
         joltgrep::Worker& worker, joltgrep::Task& task)
 {
@@ -82,6 +89,7 @@ void defaultSearch(joltgrep::WorkSystem& workSystem,
 
     auto prev = 0;
     auto it = buffer.find('\n', 0);
+
     for (; it != -1; it = buffer.find('\n', it + 1)) {
         std::string_view subview = buffer.substr(prev, it - prev);
        
@@ -96,6 +104,7 @@ void defaultSearch(joltgrep::WorkSystem& workSystem,
         joltgrep::printLine(task, subview);
     } 
 }
+*/
 
 void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
     joltgrep::Worker& worker, joltgrep::Task& task) 
@@ -106,11 +115,13 @@ void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
         throw;
     }
     worker.increaseFileRead();
- 
+    worker.resetUsed();
+
     joltgrep::SearchType searchType = workSystem.getSearchType(); 
     std::size_t bytesRead;
     do {
-        bytesRead = read(fd, worker.getBuffer().data(), joltgrep::WORKER_BUFFER_SIZE);
+        joltgrep::buffer_t& buffer = worker.getBuffer();
+        bytesRead = read(fd, buffer.data(), joltgrep::WORKER_BUFFER_SIZE);
         if (bytesRead == SIZE_T_MAX) {
             close(fd);
             return;
@@ -119,7 +130,7 @@ void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
         
         switch (searchType) {
         case joltgrep::DEFAULT_SEARCH:
-            defaultSearch(workSystem, worker, task);
+            //defaultSearch(workSystem, worker, task);
             break;
 
         case joltgrep::BOYER_MOORE_SEARCH:
@@ -130,7 +141,8 @@ void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
             joltgrep::debugPrintf("ERROR: search not implemented yet!\n");
             throw;
         }
-
+        
+        worker.switchPrimary();
     } while (bytesRead == joltgrep::WORKER_BUFFER_SIZE);
     
     close(fd);
