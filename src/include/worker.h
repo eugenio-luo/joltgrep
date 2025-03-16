@@ -13,6 +13,7 @@
 #include "clqueue.h"
 #include "task.h"
 #include "boyermoore.h"
+#include "ahocorasick.h"
 
 #include "cache.h"
 
@@ -116,14 +117,16 @@ public:
     bool writeDirQueue(Task&& task);
 
     std::optional<BoyerMoore>& getBoyerMoore(void);
+    std::optional<AhoCorasick>& getAhoCorasick(void);
 
 private:
     std::vector<AlignWorker>  m_workers;
 
-    SearchType                m_recommended;
-    std::string               m_pattern;
-    re2::RE2                  m_patternEngine;
-    std::optional<BoyerMoore> m_boyerMoore;
+    SearchType                 m_recommended;
+    std::string                m_pattern;
+    re2::RE2                   m_patternEngine;
+    std::optional<BoyerMoore>  m_boyerMoore;
+    std::optional<AhoCorasick> m_ahoCorasick;
 
     // TODO: Remove file queue? It isn't that useful
     

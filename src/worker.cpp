@@ -146,22 +146,25 @@ std::optional<joltgrep::Task> joltgrep::Worker::pop(void)
 joltgrep::SearchType decideSearchType(std::string_view pattern)
 {
     // TODO: We are too strict
-    static constexpr std::string_view boyerMooreBanned = ".[]\\*+?^$()|";
+    static constexpr std::string_view boyerMooreBanned = ".[]?()^|";
+    static constexpr std::string_view ahoCorasickBanned = "\\*+$";
 
+    joltgrep::SearchType type = joltgrep::BOYER_MOORE_SEARCH;
     for (char c : pattern) {
         if (boyerMooreBanned.find(c) != std::string::npos) {
+            type = joltgrep::AHO_CORASICK_SEARCH;
+        }
+        if (ahoCorasickBanned.find(c) != std::string::npos) {
             return joltgrep::DEFAULT_SEARCH;
         }
     }
 
-    return joltgrep::BOYER_MOORE_SEARCH;
+    return type;
 }
 
-joltgrep::WorkSystem::WorkSystem(std::string&& pattern, 
-        std::size_t numWorkers)
+joltgrep::WorkSystem::WorkSystem(std::string&& pattern, std::size_t numWorkers)
     : m_workers(numWorkers), m_recommended{joltgrep::DEFAULT_SEARCH},
-    // m_pattern{pattern}, m_patternEngine{std::nullopt}, m_boyerMoore{},
-    m_pattern{pattern}, m_patternEngine{pattern}, m_boyerMoore{},
+    m_pattern{pattern}, m_patternEngine{pattern}, m_boyerMoore{}, m_ahoCorasick{},
     m_fileQueue{}, m_fileLock{}, m_dirQueue{}, m_dirLock()
 {
     for (int i = 0; i < numWorkers; ++i) {
@@ -176,11 +179,10 @@ joltgrep::WorkSystem::WorkSystem(std::string&& pattern,
             break;
 
         case joltgrep::DEFAULT_SEARCH:
-            // m_patternEngine{pattern};
             break;
 
         case joltgrep::AHO_CORASICK_SEARCH:
-            debugPrintf("Not implemented yet!");
+            m_ahoCorasick = AhoCorasick(pattern);
             break;
     }
 }
@@ -271,4 +273,9 @@ bool joltgrep::WorkSystem::writeDirQueue(joltgrep::Task&& task)
 std::optional<BoyerMoore>& joltgrep::WorkSystem::getBoyerMoore(void)
 {
     return m_boyerMoore;
+}
+
+std::optional<AhoCorasick>& joltgrep::WorkSystem::getAhoCorasick(void)
+{
+    return m_ahoCorasick;
 }
