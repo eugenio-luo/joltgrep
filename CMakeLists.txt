@@ -14,14 +14,16 @@ find_package(re2 REQUIRED)
 
 add_executable(joltgrep ${sources})
 
-target_compile_options(joltgrep PRIVATE -Wall -O2)
-
 if (BUILD_TESTS)
+    target_compile_options(joltgrep PRIVATE -Wall -Wextra -g)
     target_compile_definitions(joltgrep PRIVATE TESTS_BUILD)
     target_include_directories(joltgrep PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
     file(GLOB_RECURSE tests_sources     tests/*.cpp)
     target_sources(joltgrep PRIVATE ${tests_sources})
+else()
+    #target_compile_options(joltgrep PRIVATE -Wall -Wextra -O2 -DDEBUG)
+    target_compile_options(joltgrep PRIVATE -Wall -Wextra -O2 )
 endif()
 
 target_link_libraries(joltgrep re2::re2)
