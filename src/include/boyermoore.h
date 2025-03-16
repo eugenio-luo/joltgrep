@@ -5,8 +5,8 @@
 #include <string>
 
 /*
- / Boyer-Moore String-Search Algorithm
- / https://en.wikipedia.org/wiki/Boyer–Moore_string-search_algorithm
+ * Boyer-Moore String-Search Algorithm
+ * https://en.wikipedia.org/wiki/Boyer–Moore_string-search_algorithm
 */
 
 class BoyerMoore {
