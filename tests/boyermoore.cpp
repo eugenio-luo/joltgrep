@@ -69,7 +69,7 @@ void testSuffixTable2(void)
     tests::end(testName);
 }
 
-void testSearch(int i)
+static void testSearch(int i)
 {
     static constexpr char testName[] = "testSearch";
 
@@ -80,7 +80,7 @@ void testSearch(int i)
     };
 
     static std::vector<std::string> patterns = { "joltgrep", "meet", "pancakes" };
-    static std::vector<std::size_t> expected = { 31, 11, 21 };
+    static std::vector<std::size_t> expected = { 23, 7, 13 };
 
     tests::start(testName, i);
 
@@ -88,7 +88,7 @@ void testSearch(int i)
     
     std::size_t pos = boyerMoore.start();
     std::size_t shift;
-    while ((shift = boyerMoore.next(strings[i], pos)) != 0) {
+    while ((shift = boyerMoore.next(strings[i], pos)) != -1) {
         pos += shift;
     }
 

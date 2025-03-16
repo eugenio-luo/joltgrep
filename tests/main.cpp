@@ -6,6 +6,7 @@ void tests::main(void)
 {
     tests::queue();   
     tests::boyerMoore();
+    tests::ahoCorasick();
 }
 
 static std::size_t numTests = 0; 
