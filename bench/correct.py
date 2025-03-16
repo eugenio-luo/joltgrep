@@ -18,7 +18,9 @@ def main():
     
     args = [ ["queue", "../bulbOS/src"],
              ["queue", "../linux/drivers"],   
-             ["PM_RESUME", "../linux/drivers"] ] 
+             ["PM_RESUME", "../linux/drivers"],
+             ["queue", "../linux"],
+             ["PM_RESUME", "../linux"] ] 
 
     for arg in args:
         check_output(cmds, arg)

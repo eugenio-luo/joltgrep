@@ -5,9 +5,7 @@ import subprocess
 import statistics
 
 WARMUP_SAMPLES = 3
-EXPERIMENT_SAMPLES = 30
-PATTERN = "queue" 
-PATH = "../linux/drivers"
+EXPERIMENT_SAMPLES = 3
 
 def run(cmd):
     start = time.perf_counter_ns()
@@ -17,7 +15,8 @@ def run(cmd):
 
     return ret, end - start;
 
-def print_result(cmd, samples, ret):
+def print_result(cmd, pattern, samples, ret):
+    cmd = cmd + pattern
     sample_mean = statistics.mean(samples)
     sample_std = statistics.stdev(samples, sample_mean)
     
@@ -25,7 +24,8 @@ def print_result(cmd, samples, ret):
           .format("'", " ".join(cmd), "'", ret.decode("ascii")[:-1], 
                   sample_mean / 1000000, sample_std / 1000000))
 
-def benchmark(cmd):
+def benchmark(cmd, pattern):
+    cmd = cmd + pattern
     for i in range(0, WARMUP_SAMPLES):
         print("'", end="")
         print(" ".join(cmd), end="")
@@ -59,20 +59,26 @@ def benchmark(cmd):
 
 def main():
     cmds = [
-            ["ggrep", "-r", PATTERN, PATH],
-            ["build/bin/joltgrep", PATTERN, PATH],
-            ["rg", "-N", PATTERN, PATH]
+            ["rg", "-N"],
+            ["ggrep", "-r"],
+            ["build/bin/joltgrep"]
            ]
-
+    patterns = [
+                ["queue", "../linux/drivers"],
+                ["queu.", "../linux/drivers"],
+                ["queu[ei]", "../linux/drivers"]
+               ]
+    #patterns = [["queu.", "../linux/drivers/scsi/scsi_transport_fc.c"]]
     results = []
 
-    for cmd in cmds:
-        samples, ret = benchmark(cmd)
-        results.append((cmd, samples, ret))
+    for pattern in patterns:
+        for cmd in cmds:
+            samples, ret = benchmark(cmd, pattern)
+            results.append((cmd, pattern, samples, ret))
 
     print()
-    for cmd, samples, ret in results:
-        print_result(cmd, samples, ret)
+    for cmd, pattern, samples, ret in results:
+        print_result(cmd, pattern, samples, ret)
     print()
 
 if __name__ == "__main__":
