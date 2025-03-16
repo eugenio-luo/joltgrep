@@ -30,13 +30,59 @@ inline size_t memchr(joltgrep::Worker& worker, size_t pos, char c)
     return SIZE_MAX;
 }
 
+void ahoCorasickSearch(joltgrep::WorkSystem& workSystem,
+                joltgrep::Worker& worker, joltgrep::Task& task)
+{
+    static thread_local int v = 0;
+
+    std::optional<AhoCorasick>& ahoCorasick = workSystem.getAhoCorasick();
+
+    if (!ahoCorasick.has_value()) {
+        joltgrep::debugPrintf("%s", "ERROR: ahoCorasickSearch but no tables?");
+        throw;
+    }
+
+    std::string& pattern = workSystem.getPattern();
+    std::size_t bufferSize = worker.getSize() + joltgrep::WORKER_BUFFER_SIZE;
+    size_t pos = joltgrep::WORKER_BUFFER_SIZE;
+    
+    joltgrep::debugPrintf("START pos: %d, state: %d\n", pos, v);
+    while (v != 0 || (pos = memchr(worker, pos, pattern.front())) < bufferSize) {
+    
+        --pos;
+        do {
+            ++pos;
+            if (pos >= bufferSize) {
+                joltgrep::debugPrintf("DEADEND pos: %d, state: %d\n", pos, v);
+                return;
+            }
+            v = ahoCorasick->go(v, worker.getChar(pos));    
+            joltgrep::debugPrintf("pos: %d, state: %d\n", pos, v);
+        } while (v > 0);
+        
+        if (v == AhoCorasick::SUCCESS) {
+            joltgrep::debugPrintf("thread %d found match in %s %d %d\n",
+                worker.getId(), task.getPath(), task.getId(), task.getOwnerId());
+
+            joltgrep::printLine(task, worker, worker.getLine(pos - pattern.size()));
+            pos = memchr(worker, pos, '\n');
+        }
+        v = 0;
+        // Reached end of file
+        if (pos >= bufferSize) {
+                break;
+        }
+    }
+    joltgrep::debugPrintf("END pos: %d, state: %d\n", pos, v);
+}
+
 void boyerMooreSearch(joltgrep::WorkSystem& workSystem,
                 joltgrep::Worker& worker, joltgrep::Task& task)
 {
     std::optional<BoyerMoore>& boyerMoore = workSystem.getBoyerMoore();
 
     if (!boyerMoore.has_value()) {
-        joltgrep::debugPrintf("ERROR: BoyerMooreSearch but no tables?");
+        joltgrep::debugPrintf("%s", "ERROR: BoyerMooreSearch but no tables?");
         throw;
     }
 
@@ -49,6 +95,7 @@ void boyerMooreSearch(joltgrep::WorkSystem& workSystem,
 
     while ((pos = memchr(worker, pos, pattern.back())) < bufferSize) {
         
+        // there's no secondary buffer yet, no point checking behind
         if (pos <= joltgrep::WORKER_BUFFER_SIZE + pattern.size() - 1 && !worker.getUsed()) {
             ++pos;
             continue;
@@ -135,6 +182,10 @@ void joltgrep::searchFile(joltgrep::WorkSystem& workSystem,
 
         case joltgrep::BOYER_MOORE_SEARCH:
             boyerMooreSearch(workSystem, worker, task);
+            break;
+
+        case joltgrep::AHO_CORASICK_SEARCH:
+            ahoCorasickSearch(workSystem, worker, task);
             break;
         
         default:
