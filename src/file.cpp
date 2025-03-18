@@ -64,7 +64,7 @@ void ahoCorasickSearch(joltgrep::WorkSystem& workSystem,
             joltgrep::debugPrintf("thread %d found match in %s %d %d\n",
                 worker.getId(), task.getPath(), task.getId(), task.getOwnerId());
 
-            joltgrep::printLine(task, worker, worker.getLine(pos - pattern.size()));
+            joltgrep::printLine(task, worker, worker.getLine(pos - 1));
             pos = memchr(worker, pos, '\n');
         }
         v = 0;
